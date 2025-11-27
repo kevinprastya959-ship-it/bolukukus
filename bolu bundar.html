@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TOKO SLB - Sembako Lengkap & Berkah</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Poppins', sans-serif;
+        }
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        .receipt-paper {
+            background-color: #fff;
+            background-image: 
+                linear-gradient(90deg, transparent 50%, rgba(255,255,255,.5) 50%),
+                radial-gradient(transparent 0, transparent 0);
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            position: relative;
+        }
+        .receipt-paper::after {
+            content: "";
+            position: absolute;
+            bottom: -10px;
+            left: 0;
+            width: 100%;
+            height: 10px;
+            background: radial-gradient(circle, transparent, transparent 50%, #fff 50%, #fff 100%) -7px -8px / 16px 16px repeat-x;
+            transform: rotate(180deg);
+        }
+
+        /* Checkbox Custom Style */
+        .custom-checkbox {
+            appearance: none;
+            background-color: #fff;
+            margin: 0;
+            font: inherit;
+            color: currentColor;
+            width: 1.25em;
+            height: 1.25em;
+            border: 2px solid #cbd5e1;
+            border-radius: 0.25em;
+            display: grid;
+            place-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+        }
+        .custom-checkbox::before {
+            content: "";
+            width: 0.65em;
+            height: 0.65em;
+            transform: scale(0);
+            transition: 120ms transform ease-in-out;
+            box-shadow: inset 1em 1em white;
+            transform-origin: center;
+            clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+        }
+        .custom-checkbox:checked {
+            background-color: #16a34a;
+            border-color: #16a34a;
+        }
+        .custom-checkbox:checked::before {
+            transform: scale(1);
+        }
+
+        /* Print Styles */
+        @media print {
+            body > * {
+                display: none !important;
+            }
+            #receipt-modal {
+                display: flex !important;
+                position: absolute !important;
+                top: 0 !important;
+                left: 0 !important;
+                width: 100% !important;
+                height: 100% !important;
+                background: white !important;
+                z-index: 9999 !important;
+                opacity: 1 !important;
+                pointer-events: auto !important;
+                align-items: flex-start !important;
+                padding: 0 !important;
+            }
+            #receipt-content {
+                box-shadow: none !important;
+                width: 100% !important;
+                max-width: 100% !important;
+                transform: none !important;
+                opacity: 1 !important;
+                border-radius: 0 !important;
+            }
+            .receipt-paper {
+                box-shadow: none !important;
+                padding: 0 !important;
+            }
+            #receipt-actions, #receipt-close-header {
+                display: none !important;
+            }
+            /* Hide scrollbars in print */
+            ::-webkit-scrollbar {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800 h-screen flex flex-col md:flex-row overflow-hidden">
+
+    <!-- Sidebar / Navigation -->
+    <aside class="w-full md:w-64 bg-white shadow-md z-20 flex-shrink-0 flex flex-col">
+        <div class="p-6 border-b border-gray-100 flex items-center justify-between md:block">
+            <div class="flex items-center gap-3">
+                <div class="bg-green-600 text-white p-2 rounded-lg">
+                    <i class="fas fa-store text-xl"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-green-700 tracking-tight">TOKO SLB</h1>
+            </div>
+            <button id="mobile-menu-btn" class="md:hidden text-gray-500 hover:text-green-600">
+                <i class="fas fa-bars text-2xl"></i>
+            </button>
+        </div>
+        
+        <nav id="sidebar-nav" class="flex-1 overflow-y-auto p-4 hidden md:block">
+            <div class="mb-6">
+                <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Kategori</h3>
+                <ul class="space-y-2" id="category-list">
+                    <!-- Categories will be injected here -->
+                </ul>
+            </div>
+        </nav>
+
+        <div class="p-4 border-t border-gray-100 hidden md:block">
+            <div class="bg-green-50 rounded-xl p-4">
+                <p class="text-sm text-green-800 font-medium mb-1">Butuh Bantuan?</p>
+                <p class="text-xs text-green-600 mb-3">Hubungi kasir jika ada masalah.</p>
+                <button class="w-full bg-green-600 hover:bg-green-700 text-white text-xs font-bold py-2 px-4 rounded-lg transition duration-200">
+                    Panggil Kasir
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col h-full overflow-hidden relative">
+        <!-- Header -->
+        <header class="bg-white shadow-sm z-10 p-4 flex justify-between items-center">
+            <div class="flex items-center bg-gray-100 rounded-lg px-4 py-2 w-full max-w-md">
+                <i class="fas fa-search text-gray-400 mr-3"></i>
+                <input type="text" id="search-input" placeholder="Cari barang (beras, gula, dll)..." class="bg-transparent border-none outline-none w-full text-sm">
+            </div>
+            <div class="flex items-center gap-4 ml-4">
+                <button class="relative p-2 text-gray-500 hover:text-green-600 transition md:hidden" onclick="toggleCart()">
+                    <i class="fas fa-shopping-cart text-xl"></i>
+                    <span id="mobile-cart-count" class="absolute top-0 right-0 bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center transform scale-0 transition-transform duration-200">0</span>
+                </button>
+                <div class="hidden md:flex items-center gap-2">
+                    <div class="text-right mr-2">
+                        <p class="text-sm font-bold text-gray-800">Kasir 01</p>
+                        <p class="text-xs text-green-600">Online</p>
+                    </div>
+                    <div class="h-10 w-10 bg-gray-200 rounded-full overflow-hidden border-2 border-white shadow-sm">
+                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix" alt="Admin" class="h-full w-full object-cover">
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Product Grid -->
+        <div class="flex-1 overflow-y-auto p-4 md:p-8 bg-gray-50" id="product-container">
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 md:gap-6" id="product-grid">
+                <!-- Products will be injected here -->
+            </div>
+        </div>
+    </main>
+
+    <!-- Cart Sidebar (Right Side) -->
+    <aside id="cart-sidebar" class="fixed inset-y-0 right-0 w-full md:w-96 bg-white shadow-2xl transform translate-x-full transition-transform duration-300 ease-in-out z-30 flex flex-col">
+        <div class="p-5 border-b border-gray-100 flex justify-between items-center bg-green-600 text-white">
+            <h2 class="text-lg font-bold flex items-center gap-2">
+                <i class="fas fa-shopping-basket"></i> Keranjang
+            </h2>
+            <button onclick="toggleCart()" class="text-white hover:text-gray-200 focus:outline-none">
+                <i class="fas fa-times text-xl"></i>
+            </button>
+        </div>
+
+        <!-- Select All Header -->
+        <div class="px-5 py-3 bg-gray-50 border-b border-gray-200 flex items-center gap-3" id="cart-header-actions">
+            <input type="checkbox" id="select-all-checkbox" class="custom-checkbox" onchange="toggleAllSelection(this.checked)">
+            <label for="select-all-checkbox" class="text-sm font-medium text-gray-600 cursor-pointer select-none">Pilih Semua</label>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-4" id="cart-items">
+            <!-- Cart items will be injected here -->
+            <div class="flex flex-col items-center justify-center h-full text-gray-400 space-y-4">
+                <i class="fas fa-shopping-cart text-6xl text-gray-200"></i>
+                <p>Keranjang masih kosong</p>
+                <button onclick="toggleCart()" class="text-green-600 font-medium hover:underline">Mulai Belanja</button>
+            </div>
+        </div>
+
+        <div class="p-6 bg-gray-50 border-t border-gray-200">
+            <!-- Payment Method Selection -->
+            <div class="mb-4">
+                <h3 class="text-sm font-semibold text-gray-700 mb-2">Metode Pembayaran</h3>
+                <div class="flex gap-2 mb-3">
+                    <label class="flex-1 cursor-pointer">
+                        <input type="radio" name="payment_method" value="qris" class="peer hidden" checked onchange="togglePaymentMethod()">
+                        <div class="border border-gray-300 rounded-lg p-2 text-center peer-checked:border-green-600 peer-checked:bg-green-50 peer-checked:text-green-700 transition">
+                            <i class="fas fa-qrcode mb-1 block text-lg"></i>
+                            <span class="text-xs font-bold">QRIS</span>
+                        </div>
+                    </label>
+                    <label class="flex-1 cursor-pointer">
+                        <input type="radio" name="payment_method" value="cash" class="peer hidden" onchange="togglePaymentMethod()">
+                        <div class="border border-gray-300 rounded-lg p-2 text-center peer-checked:border-green-600 peer-checked:bg-green-50 peer-checked:text-green-700 transition">
+                            <i class="fas fa-money-bill-wave mb-1 block text-lg"></i>
+                            <span class="text-xs font-bold">Tunai</span>
+                        </div>
+                    </label>
+                </div>
+                
+                <!-- Cash Input (Hidden by default) -->
+                <div id="cash-input-container" class="hidden">
+                    <label class="text-xs text-gray-500 mb-1 block">Uang Diterima</label>
+                    <div class="flex items-center bg-white border border-gray-300 rounded-lg px-3 py-2">
+                        <span class="text-gray-500 text-sm mr-2">Rp</span>
+                        <input type="number" id="cash-amount" class="w-full outline-none text-sm font-medium" placeholder="0" oninput="calculateChange()">
+                    </div>
+                    <div class="flex justify-between mt-2 text-xs">
+                        <span class="text-gray-500">Kembalian:</span>
+                        <span id="change-amount" class="font-bold text-gray-800">Rp 0</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-3 mb-6">
+                <div class="flex justify-between text-gray-600">
+                    <span>Subtotal (<span id="selected-count">0</span> item)</span>
+                    <span id="cart-subtotal">Rp 0</span>
+                </div>
+                <div class="flex justify-between text-gray-600">
+                    <span>Pajak (0%)</span>
+                    <span>Rp 0</span>
+                </div>
+                <div class="flex justify-between text-xl font-bold text-gray-800 pt-3 border-t border-gray-200">
+                    <span>Total</span>
+                    <span id="cart-total" class="text-green-600">Rp 0</span>
+                </div>
+            </div>
+            <button id="checkout-btn" onclick="processCheckout()" disabled class="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-bold py-3 px-4 rounded-xl shadow-lg transition duration-200 flex items-center justify-center gap-2">
+                <span>Bayar Sekarang</span>
+                <i class="fas fa-arrow-right"></i>
+            </button>
+        </div>
+    </aside>
+
+    <!-- Overlay for Mobile Cart & Modal -->
+    <div id="overlay" onclick="toggleCart(); closeReceipt()" class="fixed inset-0 bg-black bg-opacity-50 z-20 hidden backdrop-blur-sm transition-opacity duration-300"></div>
+
+    <!-- Receipt Modal -->
+    <div id="receipt-modal" class="fixed inset-0 z-50 flex items-center justify-center hidden p-4 pointer-events-none">
+        <div class="bg-white w-full max-w-md rounded-2xl shadow-2xl overflow-hidden transform scale-95 opacity-0 transition-all duration-300 pointer-events-auto" id="receipt-content">
+            <div class="bg-green-600 p-4 text-white flex justify-between items-center" id="receipt-close-header">
+                <h3 class="font-bold text-lg">Pembayaran Berhasil!</h3>
+                <button onclick="closeReceipt()" class="text-white hover:text-gray-200">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="p-6 bg-gray-100 max-h-[80vh] overflow-y-auto">
+                <div class="receipt-paper p-6 mx-auto text-sm text-gray-600 font-mono">
+                    <div class="text-center mb-6">
+                        <div class="flex items-center justify-center gap-2 mb-2">
+                            <i class="fas fa-store text-green-600 text-xl"></i>
+                            <h2 class="text-xl font-bold text-gray-800 tracking-tight">TOKO SLB</h2>
+                        </div>
+                        <p>Jl. Sembako Berkah No. 88</p>
+                        <p>Telp: 0812-3456-7890</p>
+                    </div>
+                    
+                    <div class="border-b-2 border-dashed border-gray-300 my-4"></div>
+                    
+                    <div class="flex justify-between mb-2">
+                        <span>Tanggal:</span>
+                        <span id="receipt-date"></span>
+                    </div>
+                    <div class="flex justify-between mb-4">
+                        <span>No. Transaksi:</span>
+                        <span id="receipt-id"></span>
+                    </div>
+                    <div class="flex justify-between mb-4">
+                        <span>Metode:</span>
+                        <span id="receipt-method" class="font-bold uppercase"></span>
+                    </div>
+
+                    <div class="border-b-2 border-dashed border-gray-300 my-4"></div>
+
+                    <div id="receipt-items" class="space-y-2">
+                        <!-- Receipt items injected here -->
+                    </div>
+
+                    <div class="border-b-2 border-dashed border-gray-300 my-4"></div>
+
+                    <div class="flex justify-between font-bold text-lg text-gray-800 mb-2">
+                        <span>TOTAL</span>
+                        <span id="receipt-total"></span>
+                    </div>
+                    
+                    <!-- Cash Details (Hidden for QRIS) -->
+                    <div id="receipt-cash-details" class="hidden space-y-1 text-xs">
+                        <div class="flex justify-between">
+                            <span>Tunai:</span>
+                            <span id="receipt-cash-paid"></span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span>Kembali:</span>
+                            <span id="receipt-change"></span>
+                        </div>
+                    </div>
+
+                    <!-- QR Code Section (Hidden for Cash) -->
+                    <div id="receipt-qr-section" class="text-center mb-6 mt-6">
+                        <p class="mb-2 text-xs font-semibold">SCAN UNTUK MEMBAYAR</p>
+                        <div class="bg-white p-2 inline-block border border-gray-200 rounded-lg">
+                            <img id="qr-code-img" src="" alt="QR Code Pembayaran" class="w-32 h-32 object-contain">
+                        </div>
+                        <p class="mt-2 text-xs text-gray-400">Mendukung QRIS, GoPay, OVO, Dana</p>
+                    </div>
+
+                    <div class="text-center text-xs mt-6">
+                        <p>Terima kasih telah berbelanja!</p>
+                        <p>Barang yang sudah dibeli tidak dapat ditukar.</p>
+                    </div>
+                </div>
+                
+                <div id="receipt-actions" class="mt-6 flex gap-3">
+                    <button onclick="printReceipt()" class="flex-1 bg-gray-800 hover:bg-gray-900 text-white font-bold py-3 px-4 rounded-xl shadow-md transition duration-200 flex items-center justify-center gap-2">
+                        <i class="fas fa-print"></i> Cetak Struk
+                    </button>
+                    <button onclick="closeReceipt()" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-4 rounded-xl shadow-md transition duration-200">
+                        Selesai
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data Produk
+        const products = [
+            { id: 1, name: "Beras Premium 5kg", category: "makanan", price: 65000, image: "https://images.unsplash.com/photo-1722893960889-5f2d88ce6524?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NTAxMTZ8MHwxfHNlYXJjaHwxfHxyaWNlJTIwYmFnJTIwZ3JvY2VyeXxlbnwwfHx8fDE3NjQyMDQ3MDV8MA&ixlib=rb-4.1.0&q=80&w=400" },
+            { id: 2, name: "Gula Pasir 1kg", category: "makanan", price: 16000, image: "https://images.unsplash.com/photo-1626041041459-adaf94681156?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NTAxMTZ8MHwxfHNlYXJjaHwxfHxzdWdhciUyMHBhY2t8ZW58MHx8fHwxNzY0MjA0NzA2fDA&ixlib=rb-4.1.0&q=80&w=400" },
+            { id: 3, name: "Telur Ayam 1kg", category: "makanan", price: 28000, image: "https://images.unsplash.com/photo-1585355611444-06154f329e96?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NTAxMTZ8MHwxfHNlYXJjaHwxfHxlZ2dzJTIwY2FydG9ufGVufDB8fHx8MTc2NDIwNDcwNXww&ixlib=rb-4.1.0&q=80&w=400" },
+            { id: 4, name: "Tepung Terigu 1kg", category: "makanan", price: 12000, image: "https://images.unsplash.com/photo-1610725664285-7c57e6eeac3f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NTAxMTZ8MHwxfHNlYXJjaHwxfHxmbG91ciUyMGJhZ3xlbnwwfHx8fDE3NjQyMDQ3MDV8MA&ixlib=rb-4.1.0&q=80&w=400" },
+            { id: 5, name: "Minyak Goreng 2L", category: "makanan", price: 35000, image: "https://images.unsplash.com/photo-1620122389152-6ebe2bdf6212?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTAxMTZ8MHwxfHNlYXJjaHw3fHxscGclMjBnYXMlMjBjeWxpbmRlcnxlbnwwfHx8fDE3NjQyMDQ3MDV8MA&ixlib=rb-4.1.0&q=80&w=400" },
+            { id: 6, name: "Mie Instan Goreng", category: "makanan", price: 3500, image: "https://images.unsplash.com/photo-1684707878393-02606f779d7f?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NTAxMTZ8MHwxfHNlYXJjaHwxfHxpbnN0YW50JTIwbm9vZGxlc3xlbnwwfHx8fDE3NjQyMDQ3MDV8MA&ixlib=rb-4.1.0&q=80&w=400" },
+            { id: 7, name: "Air Galon (Refill)", category: "minuman", price: 6000, image: "https://images.unsplash.com/photo-1701478008235-da625f3d72d5?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NTAxMTZ8MHwxfHNlYXJjaHwxfHx3YXRlciUyMGdhbGxvbiUyMGJvdHRsZXxlbnwwfHx8fDE3NjQyMDQ3MDV8MA&ixlib=rb-4.1.0&q=80&w=400" },
+            { id: 8, name: "Air Mineral Botol 600ml", category: "minuman", price: 4000, image: "https://images.unsplash.com/photo-1536939459926-301728717817?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NTAxMTZ8MHwxfHNlYXJjaHwxfHxib3R0bGVkJTIwd2F0ZXJ8ZW58MHx8fHwxNzY0MjA0NzA1fDA&ixlib=rb-4.1.0&q=80&w=400" },
+            { id: 9, name: "Minuman Soda Kaleng", category: "minuman", price: 8000, image: "https://images.unsplash.com/photo-1727187601459-e953a091b5fe?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NTAxMTZ8MHwxfHNlYXJjaHwxfHxjYW5uZWQlMjBzb2RhfGVufDB8fHx8MTc2NDIwNDcwNnww&ixlib=rb-4.1.0&q=80&w=400" },
+            { id: 10, name: "Es Krim Cone Coklat", category: "makanan", price: 10000, image: "https://images.unsplash.com/photo-1559703248-dcaaec9fab78?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NTAxMTZ8MHwxfHNlYXJjaHwxfHxpY2UlMjBjcmVhbSUyMGNvbmV8ZW58MHx8fHwxNzY0MjA0NzA2fDA&ixlib=rb-4.1.0&q=80&w=400" },
+            { id: 11, name: "Shampoo Botol 170ml", category: "kebutuhan", price: 22000, image: "https://images.unsplash.com/photo-1660090455967-24cf8b0eb58d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NTAxMTZ8MHwxfHNlYXJjaHwxfHxzaGFtcG9vJTIwYm90dGxlfGVufDB8fHx8MTc2NDIwNDcwNXww&ixlib=rb-4.1.0&q=80&w=400" },
+            { id: 12, name: "Gas LPG 3kg", category: "kebutuhan", price: 22000, image: "https://images.unsplash.com/photo-1759044271138-6d2c871dd8ef?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NTAxMTZ8MHwxfHNlYXJjaHwxfHxscGclMjBnYXMlMjBjeWxpbmRlcnxlbnwwfHx8fDE3NjQyMDQ3MDV8MA&ixlib=rb-4.1.0&q=80&w=400" },
+            // Bumbu Makanan
+            { id: 13, name: "Kecap Manis Botol", category: "bumbu", price: 12000, image: "https://images.unsplash.com/photo-1728774283440-ac85d9d91eac?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NTAxMTZ8MHwxfHNlYXJjaHwyfHxjaGlsaSUyMHNhdWNlJTIwYm90dGxlfGVufDB8fHx8MTc2NDIwNTAyNnww&ixlib=rb-4.1.0&q=80&w=400" },
+            { id: 14, name: "Saus Sambal Botol", category: "bumbu", price: 10000, image: "https://images.unsplash.com/photo-1757800499069-ace8d0d31ce8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NTAxMTZ8MHwxfHNlYXJjaHw1fHxjaGlsaSUyMHNhdWNlJTIwYm90dGxlfGVufDB8fHx8MTc2NDIwNTAyNnww&ixlib=rb-4.1.0&q=80&w=400" },
+            { id: 15, name: "Penyedap Rasa Ayam", category: "bumbu", price: 5000, image: "https://images.unsplash.com/photo-1761486691761-68a05fba1a26?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NTAxMTZ8MHwxfHNlYXJjaHwxfHxmb29kJTIwc2Vhc29uaW5nJTIwcG93ZGVyfGVufDB8fHx8MTc2NDIwNTAyNnww&ixlib=rb-4.1.0&q=80&w=400" },
+            { id: 16, name: "Bubuk Cabai 50g", category: "bumbu", price: 8000, image: "https://images.unsplash.com/photo-1625921133217-8d978f7872b8?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NTAxMTZ8MHwxfHNlYXJjaHwxfHxjaGlsaSUyMHBvd2RlcnxlbnwwfHx8fDE3NjQyMDUwMjZ8MA&ixlib=rb-4.1.0&q=80&w=400" },
+        ];
+
+        // State Aplikasi
+        let cart = JSON.parse(localStorage.getItem('slb_cart')) || [];
+        cart = cart.map(item => ({ ...item, selected: item.selected !== undefined ? item.selected : true }));
+        let activeCategory = 'semua';
+        let paymentMethod = 'qris'; // 'qris' or 'cash'
+
+        // Format Rupiah
+        const formatRupiah = (number) => {
+            return new Intl.NumberFormat('id-ID', {
+                style: 'currency',
+                currency: 'IDR',
+                minimumFractionDigits: 0
+            }).format(number);
+        };
+
+        // Inisialisasi
+        document.addEventListener('DOMContentLoaded', () => {
+            renderCategories();
+            renderProducts();
+            updateCartUI();
+            
+            // Event Listeners
+            document.getElementById('search-input').addEventListener('input', (e) => {
+                renderProducts(activeCategory, e.target.value);
+            });
+
+            document.getElementById('mobile-menu-btn').addEventListener('click', () => {
+                const nav = document.getElementById('sidebar-nav');
+                nav.classList.toggle('hidden');
+            });
+        });
+
+        // Render Kategori
+        function renderCategories() {
+            const categories = ['semua', ...new Set(products.map(p => p.category))];
+            const container = document.getElementById('category-list');
+            
+            container.innerHTML = categories.map(cat => `
+                <li>
+                    <button onclick="setCategory('${cat}')" 
+                        class="w-full text-left px-4 py-2 rounded-lg text-sm font-medium transition duration-200 capitalize flex items-center justify-between group ${activeCategory === cat ? 'bg-green-100 text-green-700' : 'text-gray-600 hover:bg-gray-50'}">
+                        <span>${cat}</span>
+                        ${activeCategory === cat ? '<i class="fas fa-chevron-right text-xs"></i>' : ''}
+                    </button>
+                </li>
+            `).join('');
+        }
+
+        // Set Kategori Aktif
+        function setCategory(category) {
+            activeCategory = category;
+            renderCategories();
+            renderProducts(category);
+        }
+
+        // Render Produk
+        function renderProducts(category = activeCategory, searchQuery = '') {
+            const container = document.getElementById('product-grid');
+            let filtered = products;
+
+            if (category !== 'semua') {
+                filtered = filtered.filter(p => p.category === category);
+            }
+
+            if (searchQuery) {
+                filtered = filtered.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
+            }
+
+            if (filtered.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full text-center py-12 text-gray-400">
+                        <i class="fas fa-box-open text-4xl mb-3"></i>
+                        <p>Produk tidak ditemukan</p>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = filtered.map(product => `
+                <div class="bg-white rounded-xl shadow-sm hover:shadow-md transition duration-300 overflow-hidden group flex flex-col h-full border border-gray-100">
+                    <div class="relative h-40 overflow-hidden bg-gray-100">
+                        <img src="${product.image}" alt="${product.name}" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
+                        <div class="absolute top-2 right-2 bg-white/90 backdrop-blur-sm px-2 py-1 rounded-md text-xs font-bold text-green-700 shadow-sm">
+                            ${formatRupiah(product.price)}
+                        </div>
+                    </div>
+                    <div class="p-4 flex-1 flex flex-col">
+                        <div class="text-xs text-gray-400 mb-1 uppercase tracking-wide">${product.category}</div>
+                        <h3 class="font-semibold text-gray-800 mb-2 line-clamp-2 flex-1">${product.name}</h3>
+                        <button onclick="addToCart(${product.id})" class="w-full bg-green-50 hover:bg-green-100 text-green-700 font-medium py-2 rounded-lg transition duration-200 flex items-center justify-center gap-2 text-sm mt-auto group-hover:bg-green-600 group-hover:text-white">
+                            <i class="fas fa-plus"></i> Tambah
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Tambah ke Keranjang
+        function addToCart(productId) {
+            const product = products.find(p => p.id === productId);
+            const existingItem = cart.find(item => item.id === productId);
+
+            if (existingItem) {
+                existingItem.quantity += 1;
+                existingItem.selected = true;
+            } else {
+                cart.push({ ...product, quantity: 1, selected: true });
+            }
+
+            saveCart();
+            updateCartUI();
+            
+            const sidebar = document.getElementById('cart-sidebar');
+            if (sidebar.classList.contains('translate-x-full')) {
+                toggleCart();
+            }
+        }
+
+        // Hapus dari Keranjang
+        function removeFromCart(productId) {
+            cart = cart.filter(item => item.id !== productId);
+            saveCart();
+            updateCartUI();
+        }
+
+        // Update Quantity
+        function updateQuantity(productId, change) {
+            const item = cart.find(item => item.id === productId);
+            if (item) {
+                item.quantity += change;
+                if (item.quantity <= 0) {
+                    removeFromCart(productId);
+                } else {
+                    saveCart();
+                    updateCartUI();
+                }
+            }
+        }
+
+        // Toggle Item Selection
+        function toggleItemSelection(productId) {
+            const item = cart.find(item => item.id === productId);
+            if (item) {
+                item.selected = !item.selected;
+                saveCart();
+                updateCartUI();
+            }
+        }
+
+        // Toggle All Selection
+        function toggleAllSelection(checked) {
+            cart.forEach(item => item.selected = checked);
+            saveCart();
+            updateCartUI();
+        }
+
+        // Toggle Payment Method
+        function togglePaymentMethod() {
+            const radios = document.getElementsByName('payment_method');
+            for (const radio of radios) {
+                if (radio.checked) {
+                    paymentMethod = radio.value;
+                    break;
+                }
+            }
+            
+            const cashInputContainer = document.getElementById('cash-input-container');
+            if (paymentMethod === 'cash') {
+                cashInputContainer.classList.remove('hidden');
+            } else {
+                cashInputContainer.classList.add('hidden');
+            }
+            calculateChange(); // Recalculate change if switching to cash
+        }
+
+        // Calculate Change
+        function calculateChange() {
+            if (paymentMethod !== 'cash') return;
+
+            const selectedItems = cart.filter(item => item.selected);
+            const total = selectedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            const cashGiven = parseInt(document.getElementById('cash-amount').value) || 0;
+            const change = cashGiven - total;
+
+            const changeEl = document.getElementById('change-amount');
+            if (change >= 0) {
+                changeEl.innerText = formatRupiah(change);
+                changeEl.classList.remove('text-red-500');
+                changeEl.classList.add('text-gray-800');
+            } else {
+                changeEl.innerText = "Kurang " + formatRupiah(Math.abs(change));
+                changeEl.classList.add('text-red-500');
+                changeEl.classList.remove('text-gray-800');
+            }
+        }
+
+        // Simpan ke LocalStorage
+        function saveCart() {
+            localStorage.setItem('slb_cart', JSON.stringify(cart));
+        }
+
+        // Update UI Keranjang
+        function updateCartUI() {
+            const container = document.getElementById('cart-items');
+            const subtotalEl = document.getElementById('cart-subtotal');
+            const totalEl = document.getElementById('cart-total');
+            const countEl = document.getElementById('mobile-cart-count');
+            const checkoutBtn = document.getElementById('checkout-btn');
+            const selectAllCheckbox = document.getElementById('select-all-checkbox');
+            const selectedCountEl = document.getElementById('selected-count');
+
+            const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+            countEl.innerText = totalItems;
+            countEl.classList.toggle('scale-0', totalItems === 0);
+
+            const allSelected = cart.length > 0 && cart.every(item => item.selected);
+            if (selectAllCheckbox) selectAllCheckbox.checked = allSelected;
+
+            if (cart.length === 0) {
+                container.innerHTML = `
+                    <div class="flex flex-col items-center justify-center h-64 text-gray-400 space-y-4">
+                        <div class="bg-gray-100 p-4 rounded-full">
+                            <i class="fas fa-shopping-basket text-3xl text-gray-300"></i>
+                        </div>
+                        <p class="text-sm">Keranjang masih kosong</p>
+                        <button onclick="toggleCart()" class="text-green-600 text-sm font-medium hover:underline">Mulai Belanja</button>
+                    </div>
+                `;
+                subtotalEl.innerText = formatRupiah(0);
+                totalEl.innerText = formatRupiah(0);
+                selectedCountEl.innerText = 0;
+                checkoutBtn.disabled = true;
+                if (selectAllCheckbox) selectAllCheckbox.disabled = true;
+                return;
+            }
+
+            if (selectAllCheckbox) selectAllCheckbox.disabled = false;
+
+            container.innerHTML = cart.map(item => `
+                <div class="flex gap-3 mb-4 bg-white p-3 rounded-xl border ${item.selected ? 'border-green-200 bg-green-50/30' : 'border-gray-100'} shadow-sm transition-colors duration-200">
+                    <div class="flex items-center">
+                        <input type="checkbox" class="custom-checkbox" ${item.selected ? 'checked' : ''} onchange="toggleItemSelection(${item.id})">
+                    </div>
+                    <img src="${item.image}" alt="${item.name}" class="w-16 h-16 object-cover rounded-lg bg-gray-100">
+                    <div class="flex-1 flex flex-col justify-between">
+                        <div>
+                            <h4 class="font-medium text-gray-800 text-sm line-clamp-1">${item.name}</h4>
+                            <p class="text-xs text-green-600 font-bold">${formatRupiah(item.price)}</p>
+                        </div>
+                        <div class="flex items-center justify-between mt-2">
+                            <div class="flex items-center bg-gray-100 rounded-lg">
+                                <button onclick="updateQuantity(${item.id}, -1)" class="w-6 h-6 flex items-center justify-center text-gray-500 hover:text-red-500 transition">
+                                    <i class="fas fa-minus text-xs"></i>
+                                </button>
+                                <span class="text-xs font-bold w-6 text-center text-gray-700">${item.quantity}</span>
+                                <button onclick="updateQuantity(${item.id}, 1)" class="w-6 h-6 flex items-center justify-center text-gray-500 hover:text-green-600 transition">
+                                    <i class="fas fa-plus text-xs"></i>
+                                </button>
+                            </div>
+                            <button onclick="removeFromCart(${item.id})" class="text-gray-400 hover:text-red-500 transition p-1 flex items-center gap-1 text-xs">
+                                <i class="fas fa-trash-alt"></i> Batal
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            const selectedItems = cart.filter(item => item.selected);
+            const total = selectedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            const selectedCount = selectedItems.reduce((sum, item) => sum + item.quantity, 0);
+
+            subtotalEl.innerText = formatRupiah(total);
+            totalEl.innerText = formatRupiah(total);
+            selectedCountEl.innerText = selectedCount;
+            
+            checkoutBtn.disabled = selectedItems.length === 0;
+            
+            // Recalculate change if cash input is visible
+            calculateChange();
+        }
+
+        // Toggle Cart Sidebar
+        function toggleCart() {
+            const sidebar = document.getElementById('cart-sidebar');
+            const overlay = document.getElementById('overlay');
+            
+            if (sidebar.classList.contains('translate-x-full')) {
+                sidebar.classList.remove('translate-x-full');
+                overlay.classList.remove('hidden');
+                setTimeout(() => overlay.classList.remove('opacity-0'), 10);
+            } else {
+                sidebar.classList.add('translate-x-full');
+                overlay.classList.add('opacity-0');
+                setTimeout(() => overlay.classList.add('hidden'), 300);
+            }
+        }
+
+        // Proses Checkout
+        function processCheckout() {
+            const selectedItems = cart.filter(item => item.selected);
+            
+            if (selectedItems.length === 0) {
+                alert("Silakan pilih barang yang ingin dibayar terlebih dahulu.");
+                return;
+            }
+
+            const total = selectedItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+
+            // Validasi Pembayaran Tunai
+            let cashGiven = 0;
+            let change = 0;
+            if (paymentMethod === 'cash') {
+                cashGiven = parseInt(document.getElementById('cash-amount').value) || 0;
+                if (cashGiven < total) {
+                    alert("Uang yang diterima kurang dari total belanja!");
+                    return;
+                }
+                change = cashGiven - total;
+            }
+
+            const modal = document.getElementById('receipt-modal');
+            const content = document.getElementById('receipt-content');
+            const overlay = document.getElementById('overlay');
+            
+            // Generate Receipt Data
+            const date = new Date();
+            const transactionId = 'TRX-' + Math.floor(Math.random() * 1000000);
+
+            document.getElementById('receipt-date').innerText = date.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+            document.getElementById('receipt-id').innerText = transactionId;
+            document.getElementById('receipt-total').innerText = formatRupiah(total);
+            document.getElementById('receipt-method').innerText = paymentMethod === 'cash' ? 'TUNAI' : 'QRIS';
+
+            document.getElementById('receipt-items').innerHTML = selectedItems.map(item => `
+                <div class="flex justify-between text-xs mb-1">
+                    <span class="flex-1">${item.name} x${item.quantity}</span>
+                    <span class="font-medium">${formatRupiah(item.price * item.quantity)}</span>
+                </div>
+            `).join('');
+
+            // Handle Payment Method Display
+            const qrSection = document.getElementById('receipt-qr-section');
+            const cashDetails = document.getElementById('receipt-cash-details');
+
+            if (paymentMethod === 'qris') {
+                qrSection.classList.remove('hidden');
+                cashDetails.classList.add('hidden');
+                // Generate QR Code
+                const qrData = `TOKO SLB | ${transactionId} | ${total}`;
+                document.getElementById('qr-code-img').src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(qrData)}`;
+            } else {
+                qrSection.classList.add('hidden');
+                cashDetails.classList.remove('hidden');
+                document.getElementById('receipt-cash-paid').innerText = formatRupiah(cashGiven);
+                document.getElementById('receipt-change').innerText = formatRupiah(change);
+            }
+
+            // Show Modal
+            toggleCart();
+            modal.classList.remove('hidden');
+            overlay.classList.remove('hidden');
+            overlay.classList.remove('opacity-0');
+            
+            setTimeout(() => {
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            }, 10);
+        }
+
+        // Cetak Struk
+        function printReceipt() {
+            window.print();
+        }
+
+        // Tutup Struk
+        function closeReceipt() {
+            const modal = document.getElementById('receipt-modal');
+            const content = document.getElementById('receipt-content');
+            const overlay = document.getElementById('overlay');
+
+            content.classList.remove('scale-100', 'opacity-100');
+            content.classList.add('scale-95', 'opacity-0');
+
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                overlay.classList.add('opacity-0');
+                setTimeout(() => overlay.classList.add('hidden'), 300);
+                
+                // Remove ONLY selected (purchased) items from cart
+                cart = cart.filter(item => !item.selected);
+                saveCart();
+                updateCartUI();
+                
+                // Reset Cash Input
+                document.getElementById('cash-amount').value = '';
+                document.getElementById('change-amount').innerText = 'Rp 0';
+            }, 300);
+        }
+    </script>
+</body>
+</html>
